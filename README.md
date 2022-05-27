@@ -6,3 +6,6 @@ Creates 10 characters password for each user in selected OU and export the passw
    
 ##### AD Array
 Create an AD array, based on given CSV file with users
+
+#### Configure UPN For Cloud
+Changes the upn of each user in selected OU to onmicrosoft.domain.name
