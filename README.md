@@ -1,11 +1,14 @@
 # ActiveDirectory-PowerShell-Scripts
 PowerShell scripts for OP AD management
 
-##### AD Users Password Generator
+#### AD Users Password Generator
 Creates 10 characters password for each user in selected OU and export the passwords to CSV file
    
-##### AD Array
+#### AD Array
 Create an AD array, based on given CSV file with users
 
-#### Configure UPN For Cloud
+### Configure UPN For Cloud
 Changes the upn of each user in selected OU to onmicrosoft.domain.name
+
+### Locked Users Managers
+Gets all locked users in AD and lets the administrator to unlock selected users 
