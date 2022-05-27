@@ -1,6 +1,4 @@
 # ActiveDirectory-PowerShell-Scripts
-PowerShell scripts for OP AD management
-
 Here are some useful PowerShell Scripts for Active Directory Management:
 
 #### AD Users Password Generator
