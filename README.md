@@ -15,3 +15,6 @@ Gets all locked users in AD and lets the administrator to unlock selected users
 
 ### Set Logon Hours
 Set the logon hours to selected users or OU
+
+### Create AD Group
+Create AD Group with given OU Path
