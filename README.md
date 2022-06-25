@@ -18,3 +18,6 @@ Set the logon hours to selected users or OU
 
 ### Create AD Group
 Create AD Group with given OU Path
+
+### Remove User Object From AD Grops and Disable it
+Get user by its UPN and remove from all AD groups. Finally, adding and changing primary group to given Disabled Users Group.
