@@ -1,0 +1,87 @@
+﻿
+#input: username/email
+#remove from all groups
+#change to disabled
+#enter to group disabled_users
+
+
+function GetGroupID {
+
+    param ($Group)
+
+    return [int]$Group.sid.Value.Substring($Group.sid.Value.LastIndexOf("-")+1)
+    
+
+}
+function ViewUser {
+    
+    $userGroups | Select-Object @{Name="Group Name";Expression="name"}, "GroupScope", "GroupCategory", @{Name="Path";Expression="distinguishedName"} | Format-Table
+    
+}
+function DisableUser {
+ 
+        
+    # add user to disabled group
+    try {
+        Add-ADGroupMember -Identity $disabledUsersGroup -Members $user
+        # set disabled group as user primary group
+        Get-ADUser -Identity $user | Set-ADObject -Replace @{primaryGroupID="$disabledUsersGroupID"}
+    } catch {
+        Write-Host "there was an error moving user to disabled group, try again later"
+    }
+
+
+
+    # remove user from groups
+    $userGroups | % {
+        try {
+            if((GetGroupID -Group $_) -ne $disabledUsersGroupID) {
+                Remove-ADGroupMember -Identity $_ -Members $user -Confirm:$false
+            }
+        } catch {
+            Write-Host "there was an error removing user from groups, try again later"
+        }
+    }
+
+
+
+    # change user state to disabled
+    try {
+        Set-ADUser -Identity $user -Enabled $false
+    } catch {
+        Write-Host "there was an error changing user state to disabled, try again later"
+    }
+
+    
+}
+
+
+$userUPN = [string]::Empty
+$user = $null
+$disabledUsersGroup = Get-ADGroup -Filter {Name -eq "DisabledUsers"}
+$disabledUsersGroupID = GetGroupID -Group $disabledUsersGroup 
+
+# get user
+do {
+
+    $userUPN = Read-Host "Insert User UPN (Email Address)"
+    # check expression
+    if($userUPN -notmatch "[a-z0-9!#\$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#\$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?") {
+        $userUPN = [string]::Empty
+        Write-Host "not an email address, try again" -ForegroundColor White -BackgroundColor Red
+        continue
+    }
+    $user = Get-ADUser -Filter {UserPrincipalName -eq $userUPN} 
+    
+
+} while ($userUPN -eq [string]::Empty)
+# get all user groups
+$userGroups  = $user | Get-ADPrincipalGroupMembership
+
+ViewUser
+
+$ans = Read-Host "Remove From All Groups? [Y/N]"
+if ($ans -eq "Y" -or $ans -eq "y") {
+    $removeApproval = $true
+    DisableUser
+}
