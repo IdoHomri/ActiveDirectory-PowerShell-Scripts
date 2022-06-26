@@ -1,4 +1,4 @@
-﻿
+
 #input: username/email
 #remove from all groups
 #change to disabled
@@ -14,18 +14,25 @@ function GetGroupID {
 
 }
 function ViewUser {
-    
-    $userGroups | Select-Object @{Name="Group Name";Expression="name"}, "GroupScope", "GroupCategory", @{Name="Path";Expression="distinguishedName"} | Format-Table
+
+    $user | Select-Object "Name", "Department", @{Name="Last Log On";Expression="LastLogOn"}, @{Name="User Creation Time";Expression="whenCreated"} `
+          | Format-List
+
+    $userGroups | Select-Object @{Name="Group Name";Expression="name"}, "GroupScope", "GroupCategory", @{Name="Path";Expression="distinguishedName"} `
+                | Format-Table
+
     
 }
 function DisableUser {
  
+    $success = $true
         
     # add user to disabled group
     try {
         Add-ADGroupMember -Identity $disabledUsersGroup -Members $user
         # set disabled group as user primary group
         Get-ADUser -Identity $user | Set-ADObject -Replace @{primaryGroupID="$disabledUsersGroupID"}
+        $success += $true
     } catch {
         Write-Host "there was an error moving user to disabled group, try again later"
     }
@@ -38,6 +45,7 @@ function DisableUser {
             if((GetGroupID -Group $_) -ne $disabledUsersGroupID) {
                 Remove-ADGroupMember -Identity $_ -Members $user -Confirm:$false
             }
+        $success += $true
         } catch {
             Write-Host "there was an error removing user from groups, try again later"
         }
@@ -48,11 +56,22 @@ function DisableUser {
     # change user state to disabled
     try {
         Set-ADUser -Identity $user -Enabled $false
+        $success += $true
     } catch {
         Write-Host "there was an error changing user state to disabled, try again later"
     }
 
+
+
+    # move to Disabled_Users OU
+    try {
+        Move-ADObject -Identity $user -TargetPath $disabledUsersOUPath
+        $success += $true
+    } catch {
+        Write-Host "there was an error changing user OU, try again later"
+    }
     
+    return $success
 }
 
 
@@ -60,6 +79,7 @@ $userUPN = [string]::Empty
 $user = $null
 $disabledUsersGroup = Get-ADGroup -Filter {Name -eq "DisabledUsers"}
 $disabledUsersGroupID = GetGroupID -Group $disabledUsersGroup 
+$disabledUsersOUPath =  "OU=Disabled_Users,DC=ido,DC=tests"#"OU=Disabled_Users,OU=Disable,DC=MSE,DC=Corp"
 
 # get user
 do {
@@ -71,8 +91,11 @@ do {
         Write-Host "not an email address, try again" -ForegroundColor White -BackgroundColor Red
         continue
     }
-    $user = Get-ADUser -Filter {UserPrincipalName -eq $userUPN} 
-    
+    $user = Get-ADUser -Filter {UserPrincipalName -eq $userUPN} -Properties *
+    if ($user -eq $null) {
+        Write-Host "User not found, try again" -ForegroundColor Yellow -BackgroundColor Black
+        $userUPN = [string]::Empty
+    }
 
 } while ($userUPN -eq [string]::Empty)
 # get all user groups
@@ -82,6 +105,10 @@ ViewUser
 
 $ans = Read-Host "Remove From All Groups? [Y/N]"
 if ($ans -eq "Y" -or $ans -eq "y") {
-    $removeApproval = $true
-    DisableUser
+    $operationCompleted = DisableUser
+    if($operationCompleted) { 
+        Write-Host "Operation completed successfuly" -ForegroundColor White -BackgroundColor Green 
+    } else { 
+        Write-Host "There was a problem completing the operation, please try again"
+    }
 }
