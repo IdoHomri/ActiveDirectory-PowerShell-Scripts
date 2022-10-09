@@ -1,4 +1,3 @@
-
 #input: username/email
 #remove from all groups
 #change to disabled
@@ -8,21 +7,20 @@
 function GetGroupID {
 
     param ($Group)
-
-    return [int]$Group.sid.Value.Substring($Group.sid.Value.LastIndexOf("-")+1)
-    
-
+    if($Group -ne $null) {
+        return [int]$Group.sid.Value.Substring($Group.sid.Value.LastIndexOf("-")+1)
+    }
+    return 0;
 }
-function ViewUser {
 
+function ViewUser {
     $user | Select-Object "Name", "Department", @{Name="Last Log On";Expression="LastLogOn"}, @{Name="User Creation Time";Expression="whenCreated"} `
           | Format-List
 
     $userGroups | Select-Object @{Name="Group Name";Expression="name"}, "GroupScope", "GroupCategory", @{Name="Path";Expression="distinguishedName"} `
                 | Format-Table
-
-    
 }
+
 function DisableUser {
  
     $success = $true
@@ -37,8 +35,6 @@ function DisableUser {
         Write-Host "there was an error moving user to disabled group, try again later"
     }
 
-
-
     # remove user from groups
     $userGroups | % {
         try {
@@ -51,8 +47,6 @@ function DisableUser {
         }
     }
 
-
-
     # change user state to disabled
     try {
         Set-ADUser -Identity $user -Enabled $false
@@ -60,8 +54,6 @@ function DisableUser {
     } catch {
         Write-Host "there was an error changing user state to disabled, try again later"
     }
-
-
 
     # move to Disabled_Users OU
     try {
