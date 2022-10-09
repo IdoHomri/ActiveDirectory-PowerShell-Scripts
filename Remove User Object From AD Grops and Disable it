@@ -14,11 +14,36 @@ function GetGroupID {
 }
 
 function ViewUser {
-    $user | Select-Object "Name", "Department", @{Name="Last Log On";Expression="LastLogOn"}, @{Name="User Creation Time";Expression="whenCreated"} `
+    $user | Select-Object "Name", "Department",  @{Name="User Creation Time";Expression="whenCreated"} `
           | Format-List
+          # @{Name="Last Log On";Expression="LastLogOn"},
+
 
     $userGroups | Select-Object @{Name="Group Name";Expression="name"}, "GroupScope", "GroupCategory", @{Name="Path";Expression="distinguishedName"} `
                 | Format-Table
+}
+
+function GetUserGroups {
+
+    param ($User)
+
+    $searchExpression = Read-Host "Insert Group Search Expression [if needed]"
+    if($searchExpression -ne "") {
+        $searchExpression = "*" + $searchExpression + "*"
+    }
+    $searchExpression
+
+    if($User -ne $null) {
+
+        if($searchExpression -ne "") {
+            return $user | Get-ADPrincipalGroupMembership | ? name -Like $searchExpression
+        }
+        else {
+            return $user | Get-ADPrincipalGroupMembership
+        }
+    }
+    return $null
+
 }
 
 function DisableUser {
@@ -90,8 +115,10 @@ do {
     }
 
 } while ($userUPN -eq [string]::Empty)
+
 # get all user groups
-$userGroups  = $user | Get-ADPrincipalGroupMembership
+$userGroups = GetUserGroups -User $user
+
 
 ViewUser
 
